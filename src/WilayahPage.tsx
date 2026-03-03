@@ -1,5 +1,5 @@
 import { useLoaderData, Form, useSubmit, Link } from 'react-router-dom';
-
+// @ts-ignore
 export async function wilayahLoader({ request }) {
   const url = new URL(request.url);
   const pId = url.searchParams.get("province");
