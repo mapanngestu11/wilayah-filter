@@ -1,9 +1,5 @@
 import { useLoaderData, Form, useSubmit, Link } from 'react-router-dom';
 
-/**
- * LOADER
- * Mengambil data dari file JSON eksternal dan melakukan filter berdasarkan URL params.
- */
 export async function wilayahLoader({ request }) {
   const url = new URL(request.url);
   const pId = url.searchParams.get("province");
