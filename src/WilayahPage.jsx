@@ -1,138 +1,120 @@
-import { useLoaderData, Form, useSubmit, Link } from "react-router-dom";
+import { useLoaderData, Form, useSubmit, Link } from 'react-router-dom';
 
-// DATA DUMMY GABUNGAN
-const provinces = [
-  { "id": 1, "name": "Kepulauan Riau" },
-  { "id": 2, "name": "DKI Jakarta" },
-  { "id": 3, "name": "Bali" }
-];
-
-const regencies = [
-  { "id": 1, "name": "Kota Batam", "province_id": 1 },
-  { "id": 2, "name": "Kota Tanjung Pinang", "province_id": 1 },
-  { "id": 3, "name": "Jakarta Selatan", "province_id": 2 },
-  { "id": 4, "name": "Jakarta Barat", "province_id": 2 },
-  { "id": 5, "name": "Kota Denpasar", "province_id": 3 },
-  { "id": 6, "name": "Badung", "province_id": 3 }
-];
-
-const districts = [
-  { "id": 1, "name": "Batam Kota", "regency_id": 1 },
-  { "id": 2, "name": "Batu Ampar", "regency_id": 1 },
-  { "id": 3, "name": "Belakang Padang", "regency_id": 1 },
-  { "id": 4, "name": "Bukit Bestari", "regency_id": 2 },
-  { "id": 5, "name": "Tanjung Pinang Barat", "regency_id": 2 },
-  { "id": 6, "name": "Tanjung Pinang Kota", "regency_id": 2 },
-  { "id": 7, "name": "Kebayoran Baru", "regency_id": 3 },
-  { "id": 8, "name": "Kebayoran Lama", "regency_id": 3 },
-  { "id": 9, "name": "Cilandak", "regency_id": 3 },
-  { "id": 10, "name": "Kebon Jeruk", "regency_id": 4 },
-  { "id": 11, "name": "Tamansari", "regency_id": 4 },
-  { "id": 12, "name": "Grogol Petamburan", "regency_id": 4 },
-  { "id": 13, "name": "Denpasar Selatan", "regency_id": 5 },
-  { "id": 14, "name": "Denpasar Barat", "regency_id": 5 },
-  { "id": 15, "name": "Denpasar Utara", "regency_id": 5 },
-  { "id": 16, "name": "Kuta", "regency_id": 6 },
-  { "id": 17, "name": "Kuta Selatan", "regency_id": 6 },
-  { "id": 18, "name": "Kuta Utara", "regency_id": 6 }
-];
-
+/**
+ * LOADER
+ * Mengambil data dari file JSON eksternal dan melakukan filter berdasarkan URL params.
+ */
 export async function wilayahLoader({ request }) {
   const url = new URL(request.url);
   const pId = url.searchParams.get("province");
   const rId = url.searchParams.get("regency");
   const dId = url.searchParams.get("district");
 
-  return {
-    provinces,
-    regencies: regencies.filter(r => r.province_id === Number(pId)),
-    districts: districts.filter(d => d.regency_id === Number(rId)),
-    pId, rId, dId
+  // Fetch data sesuai instruksi tambahan
+  const response = await fetch('/data/indonesia_regions.json');
+  const data = await response.json();
+
+  const provinces = data.provinces || [];
+  const allRegencies = data.regencies || [];
+  const allDistricts = data.districts || [];
+
+  // Filter hirarkis
+  const filteredRegencies = allRegencies.filter(r => r.province_id === Number(pId));
+  const filteredDistricts = allDistricts.filter(d => d.regency_id === Number(rId));
+
+  return { 
+    provinces, 
+    regencies: filteredRegencies, 
+    districts: filteredDistricts, 
+    pId, rId, dId 
   };
 }
 
-export default function WilayahPage() {
+export default function FilterPage() {
   const { provinces, regencies, districts, pId, rId, dId } = useLoaderData();
   const submit = useSubmit();
 
-  const selProv = provinces.find(p => p.id === Number(pId))?.name;
-  const selReg = regencies.find(r => r.id === Number(rId))?.name;
-  const selDist = districts.find(d => d.id === Number(dId))?.name;
+  // Mencari label wilayah untuk Breadcrumb & Main Content
+  const currentProv = provinces.find(p => p.id === Number(pId))?.name;
+  const currentReg = regencies.find(r => r.id === Number(rId))?.name;
+  const currentDist = districts.find(d => d.id === Number(dId))?.name;
+
+  const handleFilterChange = (event) => {
+    const form = event.currentTarget.form;
+    const { name } = event.target;
+
+    // Reset parameter anak jika induk berubah agar filter tetap akurat
+    const url = new URL(window.location.href);
+    if (name === "province") {
+      url.searchParams.delete("regency");
+      url.searchParams.delete("district");
+    } else if (name === "regency") {
+      url.searchParams.delete("district");
+    }
+
+    window.history.replaceState({}, "", url);
+    submit(form);
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100 p-8 text-left">
-      <nav className="breadcrumb mb-4 text-blue-600 flex gap-2 italic">
-        <Link to="/">Home</Link>
-        {selProv && <span>/ {selProv}</span>}
-        {selReg && <span>/ {selReg}</span>}
-        {selDist && <span>/ {selDist}</span>}
+    <div className="min-h-screen bg-gray-50 p-6 md:p-10 font-sans">
+      {/* 1. Breadcrumb - Menggunakan class breadcrumb */}
+      <nav className="breadcrumb mb-8 text-sm flex gap-2 text-blue-600 font-medium">
+        <Link to="/" className="hover:text-blue-800 transition">Beranda</Link>
+        {currentProv && <span> / {currentProv}</span>}
+        {currentReg && <span> / {currentReg}</span>}
+        {currentDist && <span> / {currentDist}</span>}
       </nav>
 
-      <Form method="get" className="bg-white p-6 rounded-lg shadow-md grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block font-bold mb-1">Provinsi</label>
-          <select 
-            name="province" 
-            value={pId || ""} 
-            onChange={(e) => {
-              const url = new URL(window.location.href);
-              url.searchParams.delete("regency");
-              url.searchParams.delete("district");
-              window.history.replaceState({}, "", url);
-              submit(e.currentTarget.form);
-            }} 
-            className="w-full border p-2 rounded"
-          >
-            <option value="">Pilih Provinsi</option>
-            {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-        </div>
+      {/* 2. Filter Wilayah */}
+      <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-200 mb-8">
+        <Form method="get" className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Dropdown Provinsi - name: province */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold uppercase text-gray-400">Provinsi</label>
+            <select name="province" value={pId || ""} onChange={handleFilterChange} className="border p-3 rounded-xl bg-gray-50 focus:ring-2 focus:ring-blue-400 outline-none transition-all">
+              <option value="">-- Pilih Provinsi --</option>
+              {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
 
-        <div>
-          <label className="block font-bold mb-1">Kota/Kabupaten</label>
-          <select 
-            name="regency" 
-            value={rId || ""} 
-            disabled={!pId}
-            onChange={(e) => {
-              const url = new URL(window.location.href);
-              url.searchParams.delete("district");
-              window.history.replaceState({}, "", url);
-              submit(e.currentTarget.form);
-            }} 
-            className="w-full border p-2 rounded"
-          >
-            <option value="">Pilih Kota</option>
-            {regencies.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-          </select>
-        </div>
+          {/* Dropdown Kota - name: regency */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold uppercase text-gray-400">Kota/Kabupaten</label>
+            <select name="regency" value={rId || ""} disabled={!pId} onChange={handleFilterChange} className="border p-3 rounded-xl bg-gray-50 disabled:opacity-50 transition-all">
+              <option value="">-- Pilih Kota --</option>
+              {regencies.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+            </select>
+          </div>
 
-        <div>
-          <label className="block font-bold mb-1">Kecamatan</label>
-          <select 
-            name="district" 
-            value={dId || ""} 
-            disabled={!rId}
-            onChange={(e) => submit(e.currentTarget.form)} 
-            className="w-full border p-2 rounded"
-          >
-            <option value="">Pilih Kecamatan</option>
-            {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-        </div>
+          {/* Dropdown Kecamatan - name: district */}
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-bold uppercase text-gray-400">Kecamatan</label>
+            <select name="district" value={dId || ""} disabled={!rId} onChange={(e) => submit(e.currentTarget.form)} className="border p-3 rounded-xl bg-gray-50 disabled:opacity-50 transition-all">
+              <option value="">-- Pilih Kecamatan --</option>
+              {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+            </select>
+          </div>
 
-        <div className="md:col-span-3 flex justify-end">
-          <Link to="/" className="bg-red-500 text-white px-4 py-2 rounded">Reset Filter</Link>
-        </div>
-      </Form>
+          <div className="md:col-span-3 flex justify-end">
+            <Link to="/" className="text-red-500 font-bold px-6 py-2 rounded-lg hover:bg-red-50 transition">
+              Reset Filter
+            </Link>
+          </div>
+        </Form>
+      </div>
 
-      <main className="mt-8 bg-white p-10 rounded-lg shadow-lg text-center">
-        <h1 className="text-2xl font-bold">Wilayah Terpilih:</h1>
-        <p className="text-xl text-blue-700 mt-2 font-semibold">
-          {selDist ? `${selDist}, ${selReg}, ${selProv}` : 
-           selReg ? `${selReg}, ${selProv}` : 
-           selProv ? selProv : "Belum memilih wilayah"}
+      {/* 3. Konten Utama - Menggunakan tag <main> */}
+      <main className="bg-white h-64 flex flex-col items-center justify-center rounded-3xl border-2 border-dashed border-gray-200 shadow-inner">
+        <h3 className="text-gray-400 mb-2">Lokasi Terpilih</h3>
+        <p className="text-4xl font-black text-blue-950 tracking-tight">
+          {currentDist || currentReg || currentProv || "Belum Ada Pilihan"}
         </p>
+        {currentProv && (
+          <p className="mt-4 text-sm text-gray-500 italic">
+            Menampilkan data untuk wilayah {currentProv}
+          </p>
+        )}
       </main>
     </div>
   );
